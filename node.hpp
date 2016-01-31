@@ -3,9 +3,6 @@
 
 #include <stdlib.h>
 
-//extern template <typename KEY, typename VALUE> class BST;
-//extern template <typename KEY, typename VALUE> class RBT;
-
 namespace trees {
 
         enum {BLACK = 0, RED};
@@ -43,9 +40,6 @@ namespace trees {
                                 key_   = node.key_;
                                 value_ = node.value_;
                                 colour_= node.colour_;
-                                left_  = node.left_;
-                                right_ = node.right_;
-                                parent_= node.parent_;
                         }
 
                         /* assignment operator */
@@ -53,10 +47,7 @@ namespace trees {
                                 key_   = node.key_;
                                 value_ = node.value_;
                                 colour_= node.colour_;
-                                left_  = node.left_;
-                                right_ = node.right_;
-                                parent_= node.parent_;
-                                return this;
+                                return *this;
                         }
 
                         /* destructor */
@@ -76,6 +67,5 @@ namespace trees {
                                 return value_;
                         }
         }; /* end of Node */
-
-}
-#endif
+} /* end of namespace */
+#endif /* __NODE_H__ */

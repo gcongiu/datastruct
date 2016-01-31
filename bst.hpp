@@ -2,6 +2,9 @@
 #define __BST_H__
 
 #include "node.hpp"
+#ifdef _ENABLE_DEBUG_
+#include <iostream>
+#endif
 
 namespace trees {
 
@@ -18,64 +21,90 @@ namespace trees {
                         }
 
                         /* destructor */
-                        ~BST() { }
+                        ~BST() {
+                                traverseTreeInternal(root_, &this->deleteNode);
+                        }
 
                         /* insert a new node with key k and value v */
-                        void insertNode(const KEY & k, const VALUE & v) {
-                                insertNodeInternal(k, v, &root_, root_);
+                        void insertKey(const KEY & k, const VALUE & v) {
+                                insertKeyInternal(k, v, &root_, root_);
                         }
 
                         /* delete the node with key k */
-                        void deleteNode(const KEY & k) {
-                                Node<KEY,VALUE> *node   = searchNodeInternal(k, root_);
+                        void deleteKey(const KEY & k) {
+                                Node<KEY,VALUE> *node   = searchKeyInternal(k, root_);
                                 Node<KEY,VALUE> *parent = node->parent_;
-                                Node<KEY,VALUE> *right, *min;
+                                Node<KEY,VALUE> *min, *max;
+
+                                /* if key not present */
+                                if (node == NULL)
+                                        return;
 
                                 /* node has both left and right child */
                                 if (node->left_ != NULL && node->right_ != NULL) {
-                                        right = node->right_;
-                                        min = findSubMinimum(right);
-                                        if (parent->left_ == node)
-                                                parent->left_ = min;
-                                        else
-                                                parent->right_ = min;
-                                        if (min->right_ != NULL)
-                                                min->parent_->left_ = min->right_;
-                                        min->right_ = node->right_;
-                                        min->left_  = node->left_;
-                                        min->parent_= parent;
+                                        min = findMinKeyInternal(node->right_);
+                                        replaceNode(node, min);
+                                        node = min->parent_;
+                                        if (node->left_ == min) {
+                                                deleteNode(node->left_);
+                                                node->left_ = NULL;
+                                        }
+                                        else {
+                                                deleteNode(node->right_);
+                                                node->right_ = NULL;
+                                        }
                                 }
                                 /* node has only left child */
                                 else if (node->left_ != NULL) {
-                                        if (parent->left_ == node)
-                                                parent->left_ = node->left_;
-                                        else
-                                                parent->right_ = node->left_;
+                                        max = findMaxKeyInternal(node->left_);
+                                        replaceNode(node, max);
+                                        node = max->parent_;
+                                        if (node->left_ == max) {
+                                                deleteNode(node->left_);
+                                                node->left_ = NULL;
+                                        }
+                                        else {
+                                                deleteNode(node->right_);
+                                                node->right_ = NULL;
+                                        }
                                 }
                                 /* node has only right child */
                                 else if (node->right_ != NULL) {
-                                        if (parent->left_ == node)
-                                                parent->left_ = node->right_;
-                                        else
-                                                parent->right_ = node->right_;
+                                        min = findMinKeyInternal(node->right_);
+                                        replaceNode(node, max);
+                                        node = max->parent_;
+                                        if (node->left_ == max) {
+                                                deleteNode(node->left_);
+                                                node->left_ = NULL;
+                                        }
+                                        else {
+                                                deleteNode(node->right_);
+                                                node->right_ = NULL;
+                                        }
                                 }
                                 /* node is a leaf node, just delete it */
-                                else {
-                                        if (parent->left_ == node)
+                                else if (parent != NULL) {
+                                           if (parent->left_ == node) {
+                                                deleteNode(parent->left_);
                                                 parent->left_ = NULL;
-                                        else
+                                        }
+                                        else if (parent->right_ == node){
+                                                deleteNode(parent->right_);
                                                 parent->right_ = NULL;
+                                        }
                                 }
-                                delete node;
+                                else {
+                                        deleteNode(node);
+                                }
                         }
 
                         /* return node with key k */
-                        Node<KEY,VALUE> * searchNode(const KEY & k) {
-                                return searchNodeInternal(k, root_);
+                        Node<KEY,VALUE> * searchKey(const KEY & k) {
+                                return searchKeyInternal(k, root_);
                         }
 
                         /* find the maximum */
-                        Node<KEY,VALUE> * findMaximum() {
+                        Node<KEY,VALUE> * findMaxKey() {
                                 Node<KEY,VALUE> * max;
 
                                 if (root_ == NULL)
@@ -88,7 +117,7 @@ namespace trees {
                         }
 
                         /* find the minumum */
-                        Node<KEY,VALUE> * findMinimum() {
+                        Node<KEY,VALUE> * findMinKey() {
                                 Node<KEY,VALUE> * min;
 
                                 if (root_ == NULL)
@@ -100,9 +129,14 @@ namespace trees {
                                 return min;
                         }
 
+                        /* traverse tree */
+                        void traverseTree(void (*function)(Node<KEY,VALUE> *)) {
+                                traverseTreeInternal(root_, function);
+                        }
+
                 private:
                         /* insert node internal used to implement recursion */
-                        void insertNodeInternal(const KEY & k, const VALUE & v, Node<KEY,VALUE> ** node, Node<KEY,VALUE> * parent) {
+                        void insertKeyInternal(const KEY & k, const VALUE & v, Node<KEY,VALUE> ** node, Node<KEY,VALUE> * parent) {
                                 Node<KEY,VALUE> * p;
 
                                 if (*node == NULL) {
@@ -112,10 +146,10 @@ namespace trees {
                                 }
 
                                 if (k < (*node)->key_) {
-                                        insertNodeInternal(k, v, &(*node)->left_, *node);
+                                        insertKeyInternal(k, v, &(*node)->left_, *node);
                                 }
                                 else if (k > (*node)->key_) {
-                                        insertNodeInternal(k, v, &(*node)->right_, *node);
+                                        insertKeyInternal(k, v, &(*node)->right_, *node);
                                 }
                                 else {
                                         /* replace existing node */
@@ -132,19 +166,19 @@ namespace trees {
                         }
 
                         /* search node internal used to implement recursion */
-                        Node<KEY,VALUE> * searchNodeInternal(const KEY & k, Node<KEY,VALUE> * node) {
+                        Node<KEY,VALUE> * searchKeyInternal(const KEY & k, Node<KEY,VALUE> * node) {
                                 Node<KEY,VALUE> * p = node;
 
                                 if (k < p->key_)
-                                        return searchNodeInternal(k, p->left_);
+                                        return searchKeyInternal(k, p->left_);
                                 else if (k > p->key_)
-                                        return searchNodeInternal(k, p->right_);
+                                        return searchKeyInternal(k, p->right_);
 
                                 return p;
                         }
 
                         /* find the maximum in this node's subtree */
-                        Node<KEY,VALUE> * findSubMaximum(Node<KEY,VALUE> * node) {
+                        Node<KEY,VALUE> * findMaxKeyInternal(Node<KEY,VALUE> * node) {
                                 Node<KEY,VALUE> * max;
 
                                 if (node == NULL)
@@ -158,7 +192,7 @@ namespace trees {
                         }
 
                         /* find the minumum in this node's subtree */
-                        Node<KEY,VALUE> * findSubMinimum(Node<KEY,VALUE> * node) {
+                        Node<KEY,VALUE> * findMinKeyInternal(Node<KEY,VALUE> * node) {
                                 Node<KEY,VALUE> * min;
 
                                 if (node == NULL)
@@ -169,6 +203,55 @@ namespace trees {
                                         min = min->left_;
 
                                 return min;
+                        }
+
+                        /* replace node with child */
+                        void replaceNode(Node<KEY,VALUE> * node, Node<KEY,VALUE> * child) {
+                                /* invoke assignment operator */
+                                *node = *child;
+#ifdef _ENABLE_DEBUG_
+                                std::cout << "child key: " <<
+                                        child->key_ <<
+                                        ", node key: " <<
+                                        node->key_ << std::endl;
+                                std::cout << "child value: " <<
+                                        child->value_ <<
+                                        ", node value: " <<
+                                        node->value_ << std::endl;
+                                std::cout << "child->left: " <<
+                                        child->left_ <<
+                                        ", node->left: " <<
+                                        node->left_ << std::endl;
+                                std::cout << "child->right: " <<
+                                        child->right_ <<
+                                        ", node->right: " <<
+                                        node->right_ << std::endl;
+#endif
+                        }
+
+                        /* traverse tree internal */
+                        void traverseTreeInternal(Node<KEY,VALUE> * node, void (*function)(Node<KEY,VALUE> *)) {
+                                if (node == NULL)
+                                        return;
+
+                                /* apply function to left subtree first */
+                                traverseTreeInternal(node->left_, function);
+                                if (node->left_)
+                                        function(node->left_);
+
+                                /* apply function to right subtree second */
+                                traverseTreeInternal(node->right_, function);
+                                if (node->right_)
+                                        function(node->right_);
+
+                                /* finally apply function to root (e.g. delete) */
+                                if (node == root_)
+                                        function(node);
+                         }
+
+                        /* delete node */
+                        static void deleteNode(Node<KEY,VALUE> * node) {
+                                delete node;
                         }
         }; /* end of binary search tree */
 } /* end of namespace */
