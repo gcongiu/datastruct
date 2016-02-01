@@ -32,20 +32,20 @@ namespace trees {
 
                         /* delete the node with key k */
                         void deleteKey(const KEY & k) {
-                                Node<KEY,VALUE> *node   = searchKeyInternal(k, root_);
-                                Node<KEY,VALUE> *parent = node->parent_;
-                                Node<KEY,VALUE> *min, *max;
+                                Node<KEY,VALUE> *node = deleteKeyInternal(k);
+                                Node<KEY,VALUE> *parent, *child;
 
                                 /* if key not present */
                                 if (node == NULL)
                                         return;
 
+                                parent = node->parent_;
+
                                 /* node has both left and right child */
                                 if (node->left_ != NULL && node->right_ != NULL) {
-                                        min = findMinKeyInternal(node->right_);
-                                        replaceNode(node, min);
-                                        node = min->parent_;
-                                        if (node->left_ == min) {
+                                        child = findMinKeyInternal(node->right_);
+                                        node = child->parent_;
+                                        if (node->left_ == child) {
                                                 deleteNode(node->left_);
                                                 node->left_ = NULL;
                                         }
@@ -56,10 +56,9 @@ namespace trees {
                                 }
                                 /* node has only left child */
                                 else if (node->left_ != NULL) {
-                                        max = findMaxKeyInternal(node->left_);
-                                        replaceNode(node, max);
-                                        node = max->parent_;
-                                        if (node->left_ == max) {
+                                        child = findMaxKeyInternal(node->left_);
+                                        node = child->parent_;
+                                        if (node->left_ == child) {
                                                 deleteNode(node->left_);
                                                 node->left_ = NULL;
                                         }
@@ -70,10 +69,9 @@ namespace trees {
                                 }
                                 /* node has only right child */
                                 else if (node->right_ != NULL) {
-                                        min = findMinKeyInternal(node->right_);
-                                        replaceNode(node, max);
-                                        node = max->parent_;
-                                        if (node->left_ == max) {
+                                        child = findMinKeyInternal(node->right_);
+                                        node = child->parent_;
+                                        if (node->left_ == child) {
                                                 deleteNode(node->left_);
                                                 node->left_ = NULL;
                                         }
@@ -84,7 +82,7 @@ namespace trees {
                                 }
                                 /* node is a leaf node, just delete it */
                                 else if (parent != NULL) {
-                                           if (parent->left_ == node) {
+                                        if (parent->left_ == node) {
                                                 deleteNode(parent->left_);
                                                 parent->left_ = NULL;
                                         }
@@ -165,6 +163,53 @@ namespace trees {
                                 }
                         }
 
+                        /* delete key internal: replace node with key k with proper node */
+                        Node<KEY,VALUE> * deleteKeyInternal(const KEY & k) {
+                                Node<KEY,VALUE> *node = searchKeyInternal(k, root_);
+                                Node<KEY,VALUE> *parent, *child;
+
+                                /* if key not present */
+                                if (node == NULL)
+                                        return NULL;
+
+                                parent = node->parent_;
+
+                                /* node has both left and right child */
+                                if (node->left_ != NULL && node->right_ != NULL) {
+                                        child = findMinKeyInternal(node->right_);
+                                        *node = *child;
+                                }
+                                /* node has only left child */
+                                else if (node->left_ != NULL) {
+                                        child = findMaxKeyInternal(node->left_);
+                                        *node = *child;
+                                }
+                                /* node has only right child */
+                                else if (node->right_ != NULL) {
+                                        child = findMinKeyInternal(node->right_);
+                                        *node = *child;
+                                }
+#ifdef _ENABLE_DEBUG_
+                                std::cout << "child key: " <<
+                                        child->key_ <<
+                                        ", node key: " <<
+                                        node->key_ << std::endl;
+                                std::cout << "child value: " <<
+                                        child->value_ <<
+                                        ", node value: " <<
+                                        node->value_ << std::endl;
+                                std::cout << "child->left: " <<
+                                        child->left_ <<
+                                        ", node->left: " <<
+                                        node->left_ << std::endl;
+                                std::cout << "child->right: " <<
+                                        child->right_ <<
+                                        ", node->right: " <<
+                                        node->right_ << std::endl;
+#endif
+                                return node;
+                        }
+
                         /* search node internal used to implement recursion */
                         Node<KEY,VALUE> * searchKeyInternal(const KEY & k, Node<KEY,VALUE> * node) {
                                 Node<KEY,VALUE> * p = node;
@@ -203,30 +248,6 @@ namespace trees {
                                         min = min->left_;
 
                                 return min;
-                        }
-
-                        /* replace node with child */
-                        void replaceNode(Node<KEY,VALUE> * node, Node<KEY,VALUE> * child) {
-                                /* invoke assignment operator */
-                                *node = *child;
-#ifdef _ENABLE_DEBUG_
-                                std::cout << "child key: " <<
-                                        child->key_ <<
-                                        ", node key: " <<
-                                        node->key_ << std::endl;
-                                std::cout << "child value: " <<
-                                        child->value_ <<
-                                        ", node value: " <<
-                                        node->value_ << std::endl;
-                                std::cout << "child->left: " <<
-                                        child->left_ <<
-                                        ", node->left: " <<
-                                        node->left_ << std::endl;
-                                std::cout << "child->right: " <<
-                                        child->right_ <<
-                                        ", node->right: " <<
-                                        node->right_ << std::endl;
-#endif
                         }
 
                         /* traverse tree internal */
