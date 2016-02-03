@@ -46,7 +46,6 @@ namespace trees {
                         Node & operator=(const Node & node) {
                                 key_   = node.key_;
                                 value_ = node.value_;
-                                colour_= node.colour_;
                                 return *this;
                         }
 
