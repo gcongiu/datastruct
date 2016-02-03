@@ -10,7 +10,7 @@ namespace trees {
 
                 private:
                         Node<KEY,VALUE> * root_;
-                        Node<KEY,VALUE> * leaf_;
+                        Node<KEY,VALUE> * leaf_; /* place holder for deletion */
 
                 public:
                         /* default constructor */
@@ -18,29 +18,76 @@ namespace trees {
                                 BST<KEY,VALUE>();
                                 leaf_ = new BST<KEY,VALUE>();
                                 leaf_->colour_ = BLACK;
-                                root_->left_ = leaf_;
-                                root_->right_= leaf_;
                         }
 
                         /* deconstructor */
-                        ~RBT() { }
+                        ~RBT() {
+                                traverseTreeInternal(root_, &this->deleteNode);
+                        }
 
-                        /* insert node */
-                        void insertNode(const KEY & k, const VALUE & v) {
+                        /* insert key */
+                        void insertKey(const KEY & k, const VALUE & v) {
                                 Node<KEY,VALUE> ** node = &root_;
 
                                 /* insert the key value in the tree */
                                 insertNodeInternal(k, v, node, *node);
 
-                                node->left_ = leaf_;
-                                node->right_= leaf_;
+                                node->left_ = NULL;
+                                node->right_= NULL;
 
                                 /* check Case 1 for tree rebalancing */
                                 rebalanceInsertCase1(*node);
                         }
 
-                        /* delete a node */
-                        void deleteNode(const KEY & k) { }
+                        /* delete a key */
+                        void deleteKey(const KEY & k) {
+                                /*
+                                 * find and replace node having
+                                 * key k with either the node having
+                                 * max k in the left branch or the
+                                 * node having min k in the left.
+                                 */
+                                Node<KEY,VALUE> *node = deleteKeyInternal(k);
+                                Node<KEY,VALUE> *parent, *child;
+
+                                /* if key not present */
+                                if (node == NULL)
+                                        return;
+
+                                child = (node->left_) ? node->left_ : node->right_;
+
+                                /* node is a leaf, use leaf_ place holder as child */
+                                if (child == NULL)
+                                        child = leaf_;
+
+                                /* replace node with child and keep node */
+                                parent = node->parent_;
+                                if (parent) {
+                                        if (parent->left_ == node)
+                                                parent->left_ = child;
+                                        else
+                                                parent->right_ = child;
+
+                                        child->parent_ = parent;
+                                }
+
+                                if (node->colour_ == BLACK)
+                                        if (child->colour_ == RED)
+                                                child->colour_ = BLACK;
+                                        else
+                                                /* double black case */
+                                                rebalanceDeleteCase1(child);
+
+                                /* eventually delete node */
+                                deleteNode(node);
+
+                                /* and replace leaf with null pointer */
+                                if (child == leaf_)
+                                        if (child->parent_->left_ == child)
+                                                child->parent_->left_ = NULL;
+                                        else
+                                                child->parent_->right_ = NULL;
+                        }
 
                 private:
                         /* Case 1: the root node is black */
@@ -102,6 +149,98 @@ namespace trees {
                                         rotateLeft(grandpa);
                         }
 
+                        /* Case 1: */
+                        void rebalanceDeleteCase1(Node<KEY,VALUE> * node) {
+                                 if (node->parent_ != NULL)
+                                        rebalanceDeleteCase2(node);
+                        }
+
+                        /* Case 2: */
+                        void rebalanceDeleteCase2(Node<KEY,VALUE> * node) {
+                                Node<KEY,VALUE> * sibling = getSibling(node);
+
+                                if (sibling->colour_ == RED) {
+                                        node->parent_->colour_ = RED;
+                                        sibling->colour_ = BLACK;
+
+                                        if (node->parent_->left_ == node)
+                                                rotateLeft(node->parent_);
+                                        else
+                                                rotateRight(node->parent_);
+                                }
+
+                                rebalanceDeleteCase3(node);
+                        }
+
+                        /* Case 3: */
+                        void rebalanceDeleteCase3(Node<KEY,VALUE> * node) {
+                                 Node<KEY,VALUE> * sibling = getSibling(node);
+
+                                 if ((node->parent_->colour_ == BLACK) &&
+                                     (sibling->colour_ == BLACK) &&
+                                     (sibling->left_->colour_ == BLACK) &&
+                                     (sibling->right_->colour_ == BLACK)) {
+                                         sibling->colour_ = RED;
+                                         rebalanceDeleteCase1(node->parent);
+                                 }
+                                 else
+                                        rebalanceDeleteCase4(node);
+                        }
+
+                        /* Case 4: */
+                        void rebalanceDeleteCase4(Node<KEY,VALUE> * node) {
+                                Node<KEY,VALUE> * sibling = getSibling(node);
+
+                                if ((node->parent_->color_ == RED) &&
+                                    (sibling->color_ == BLACK) &&
+                                    (sibling->left_->color_ == BLACK) &&
+                                    (sibling->right_->color_ == BLACK)) {
+                                        sibling->color_ = RED;
+                                        node->parent_->color_ = BLACK;
+                                } else
+                                        rebalanceDeleteCase5(node);
+                        }
+
+                        /* Case 5: */
+                        void rebalanceDeleteCase5(Node<KEY,VALUE> * node) {
+                                Node<KEY,VALUE> * sibling = getSibling(node);
+
+                                if (sibling->color_ == BLACK) {
+                                        if ((node->parent_->left_ == node) &&
+                                            (sibling->right_->color_ == BLACK) &&
+                                            (sibling->left_->color_ == RED)) {
+                                                sibling->color_ = RED;
+                                                sibling->left_->color_ = BLACK;
+                                                rotateRight(sibling);
+                                        }
+                                        else if ((node->parent_->right_ == node) &&
+                                                 (sibling->left_->color_ == BLACK) &&
+                                                 (sibling->right_->color_ == RED)) {
+                                                sibling->color_ = RED;
+                                                sibling->right_->color_ = BLACK;
+                                                rotateLeft(sibling);
+                                        }
+                                }
+                                rebalanceDeleteCase6(node);
+                        }
+
+                        /* Case 6: */
+                        void rebalanceDeleteCase6(Node<KEY,VALUE> * node) {
+                                 Node<KEY,VALUE> * sibling = getSibling(node);
+
+                                 sibling->colour_ = node->parent_->colour_;
+                                 node->parent_->colour_ = BLACK;
+
+                                 if (node->parent_->left_ == node) {
+                                         sibling->right_->colour_ = BLACK;
+                                         rotateLeft(node->parent_);
+                                 }
+                                 else {
+                                          sibling->left_->colour_ = BLACK;
+                                          rotateRight(node->parent_);
+                                 }
+                        }
+
                         /* rotate left */
                         void rotateLeft(Node<KEY,VALUE> * node) {
                                 Node<KEY,VALUE> * parent;
@@ -153,7 +292,7 @@ namespace trees {
 
                         /* is node a leaf node? */
                         bool isLeaf(Node<KEY,VALUE> * node) {
-                                return (node != leaf_) ? false : true;
+                                return (node != NULL) ? false : true;
                         }
         }; /* end of red black tree */
 } /* end of namespace */
