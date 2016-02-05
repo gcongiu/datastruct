@@ -1,17 +1,15 @@
 #ifndef __BST_H__
 #define __BST_H__
 
-#include "node.hpp"
-#ifdef _ENABLE_DEBUG_
 #include <iostream>
-#endif
+#include "node.hpp"
 
 namespace trees {
 
         /* rooted binary search tree class definition */
         template <typename KEY, typename VALUE> class BST {
 
-                private:
+                protected:
                         Node<KEY,VALUE> *root_;
 
                 public:
@@ -35,8 +33,8 @@ namespace trees {
                                 /*
                                  * find and replace node having
                                  * key k with either the node having
-                                 * max k in the left branch or the
-                                 * node having min k in the left.
+                                 * max key > k in the left branch or the
+                                 * node having min key < k in the left.
                                  * return the pointer to the min/max
                                  * node.
                                  */
@@ -51,19 +49,28 @@ namespace trees {
 
                                 /* deleting the root */
                                 if (parent == NULL) {
-                                        deleteNode(child);
-                                        return;
+                                        goto delete_node;
                                 }
 
                                 /* delete min/max node */
                                 if (parent->left_ == child) {
-                                        deleteNode(parent->left_);
-                                        parent->left_ = NULL;
+                                        if (child->left_)
+                                                parent->left_ = child->left_;
+                                        else if (child->right_)
+                                                parent->left_ = child->right_;
+                                        else
+                                                parent->left_ = NULL;
                                 }
                                 else {
-                                        deleteNode(parent->right_);
-                                        parent->right_ = NULL;
+                                        if (child->right_)
+                                                parent->right_ = child->right_;
+                                        else if (child->left_)
+                                                parent->right_ = child->left_;
+                                        else
+                                                parent->right_ = NULL;
                                 }
+delete_node:
+                                deleteNode(child);
                         }
 
                         /* return node with key k */
@@ -102,7 +109,13 @@ namespace trees {
                                 traverseTreeInternal(root_, function);
                         }
 
-                private:
+                        static void print_node(trees::Node<KEY,VALUE> * node) {
+                                std::cout << "key: " << node->getKey()
+                                          << ", value: " << node->getValue()
+                                          << std::endl;
+                        }
+
+                protected:
                         /* insert node internal used to implement recursion */
                         void insertKeyInternal(const KEY & k, const VALUE & v, Node<KEY,VALUE> ** node, Node<KEY,VALUE> * parent) {
                                 Node<KEY,VALUE> * p;
@@ -110,6 +123,9 @@ namespace trees {
                                 if (*node == NULL) {
                                         *node = new Node<KEY,VALUE>(k, v);
                                         (*node)->parent_ = parent;
+#ifdef _ENABLE_DEBUG_
+                                        std::cout << "inserting " << *node << std::endl;
+#endif
                                         return;
                                 }
 
@@ -125,6 +141,7 @@ namespace trees {
                                         p->left_  = (*node)->left_;
                                         p->right_ = (*node)->right_;
                                         p->parent_= (*node)->parent_;
+                                        p->colour_= (*node)->colour_;
                                         if (parent->left_ == *node)
                                                 parent->left_ = p;
                                         else
@@ -161,30 +178,15 @@ namespace trees {
                                 else {
                                          child = node;
                                 }
-#ifdef _ENABLE_DEBUG_
-                                std::cout << "child key: " <<
-                                        child->key_ <<
-                                        ", node key: " <<
-                                        node->key_ << std::endl;
-                                std::cout << "child value: " <<
-                                        child->value_ <<
-                                        ", node value: " <<
-                                        node->value_ << std::endl;
-                                std::cout << "child->left: " <<
-                                        child->left_ <<
-                                        ", node->left: " <<
-                                        node->left_ << std::endl;
-                                std::cout << "child->right: " <<
-                                        child->right_ <<
-                                        ", node->right: " <<
-                                        node->right_ << std::endl;
-#endif
                                 return child;
                         }
 
                         /* search node internal used to implement recursion */
                         Node<KEY,VALUE> * searchKeyInternal(const KEY & k, Node<KEY,VALUE> * node) {
                                 Node<KEY,VALUE> * p = node;
+
+                                if (node == NULL)
+                                        return NULL;
 
                                 if (k < p->key_)
                                         return searchKeyInternal(k, p->left_);
@@ -244,6 +246,9 @@ namespace trees {
 
                         /* delete node */
                         static void deleteNode(Node<KEY,VALUE> * node) {
+#ifdef _ENABLE_DEBUG_
+                                std::cout << "deleting " << node << std::endl;
+#endif
                                 delete node;
                         }
         }; /* end of binary search tree */
