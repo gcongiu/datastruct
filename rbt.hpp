@@ -2,6 +2,9 @@
 #define __RBT_H__
 
 #include "bst.hpp"
+#ifdef _ENABLE_DEBUG_
+#include <iostream>
+#endif
 
 namespace trees {
 
@@ -9,34 +12,34 @@ namespace trees {
         template <typename KEY, typename VALUE> class RBT : public BST<KEY,VALUE> {
 
                 private:
-                        Node<KEY,VALUE> * root_;
                         Node<KEY,VALUE> * leaf_; /* place holder for deletion */
 
                 public:
                         /* default constructor */
                         RBT() {
                                 BST<KEY,VALUE>();
-                                leaf_ = new BST<KEY,VALUE>();
+                                leaf_ = new Node<KEY,VALUE>();
                                 leaf_->colour_ = BLACK;
                         }
 
                         /* deconstructor */
                         ~RBT() {
-                                traverseTreeInternal(root_, &this->deleteNode);
+                                delete leaf_;
                         }
 
                         /* insert key */
                         void insertKey(const KEY & k, const VALUE & v) {
-                                Node<KEY,VALUE> ** node = &root_;
+                                Node<KEY,VALUE> ** node = &this->root_;
 
                                 /* insert the key value in the tree */
-                                insertNodeInternal(k, v, node, *node);
-
-                                node->left_ = NULL;
-                                node->right_= NULL;
+                                this->insertKeyInternal(k, v, node, *node);
 
                                 /* check Case 1 for tree rebalancing */
-                                rebalanceInsertCase1(*node);
+                                rebalanceInsertCase1(this->searchKey(k));
+#ifdef _ENABLE_DEBUG_
+                                this->traverseTreeInternal(this->root_, &this->print_node);
+                                std::cout << std::endl;
+#endif
                         }
 
                         /* delete a key */
@@ -47,7 +50,7 @@ namespace trees {
                                  * max k in the left branch or the
                                  * node having min k in the left.
                                  */
-                                Node<KEY,VALUE> *node = deleteKeyInternal(k);
+                                Node<KEY,VALUE> *node = this->deleteKeyInternal(k);
                                 Node<KEY,VALUE> *parent, *child;
 
                                 /* if key not present */
@@ -71,22 +74,24 @@ namespace trees {
                                         child->parent_ = parent;
                                 }
 
-                                if (node->colour_ == BLACK)
+                                if (node->colour_ == BLACK) {
                                         if (child->colour_ == RED)
                                                 child->colour_ = BLACK;
                                         else
                                                 /* double black case */
                                                 rebalanceDeleteCase1(child);
+                                }
 
                                 /* eventually delete node */
-                                deleteNode(node);
+                                this->deleteNode(node);
 
                                 /* and replace leaf with null pointer */
-                                if (child == leaf_)
+                                if (child == leaf_) {
                                         if (child->parent_->left_ == child)
                                                 child->parent_->left_ = NULL;
                                         else
                                                 child->parent_->right_ = NULL;
+                                }
                         }
 
                 private:
@@ -99,7 +104,7 @@ namespace trees {
                         }
                         /* Case 2: the parent node is black */
                         void rebalanceInsertCase2(Node<KEY,VALUE> * node) {
-                                if (node->parent_ == BLACK)
+                                if (node->parent_->colour_ == BLACK)
                                         return;
                                 else
                                         rebalanceInsertCase3(node);
@@ -132,6 +137,7 @@ namespace trees {
                                         rotateRight(node->parent_);
                                         node = node->right_;
                                 }
+
                                 rebalanceInsertCase5(node);
                         }
 
@@ -139,14 +145,18 @@ namespace trees {
                         void rebalanceInsertCase5(Node<KEY,VALUE> * node) {
                                 Node<KEY,VALUE> * grandpa;
 
-                                grandpa                = getGrandParent(node);
+                                grandpa = getGrandParent(node);
                                 node->parent_->colour_ = BLACK;
-                                grandpa->colour_       = RED;
+                                grandpa->colour_ = RED;
 
                                 if (node == node->parent_->left_)
                                         rotateRight(grandpa);
                                 else
                                         rotateLeft(grandpa);
+
+                                /* if grand parent was root update root */
+                                if (grandpa->parent_->parent_ == NULL)
+                                        this->root_ = grandpa->parent_;
                         }
 
                         /* Case 1: */
@@ -243,20 +253,40 @@ namespace trees {
 
                         /* rotate left */
                         void rotateLeft(Node<KEY,VALUE> * node) {
-                                Node<KEY,VALUE> * parent;
-                                parent                = node->parent_;
-                                parent->left_         = node->right_;
-                                node->right_->parent_ = parent;
-                                node->right_->left_   = node;
+                                Node<KEY,VALUE> * parent, * right_child;
+
+                                parent = node->parent_;
+                                right_child = node->right_;
+
+                                if (parent) {
+                                        if (parent->left_ == node)
+                                                parent->left_ = right_child;
+                                        else
+                                                parent->right_ = right_child;
+                                }
+                                right_child->parent_ = parent;
+                                node->right_ = right_child->left_;
+                                node->parent_ = right_child;
+                                right_child->left_ = node;
                         }
 
                         /* rotate right */
                         void rotateRight(Node<KEY,VALUE> * node) {
-                                Node<KEY,VALUE> * parent;
-                                parent               = node->parent_;
-                                parent->right_       = node->left_;
-                                node->left_->parent_ = parent;
-                                node->left_->right_  = node;
+                                Node<KEY,VALUE> * parent, * left_child;
+
+                                parent = node->parent_;
+                                left_child = node->left_;
+
+                                if (parent) {
+                                        if (parent->left_ == node)
+                                                parent->left_ = left_child;
+                                        else
+                                                parent->right_ = left_child;
+                                }
+                                left_child->parent_ = parent;
+                                node->left_ = left_child->right_;
+                                node->parent_ = left_child;
+                                left_child->right_ = node;
                         }
 
                         /* get grand parent */
