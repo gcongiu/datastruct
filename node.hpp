@@ -1,8 +1,6 @@
 #ifndef __NODE_H__
 #define __NODE_H__
 
-#include <stdlib.h>
-
 namespace trees {
 
         enum {BLACK = 0, RED};
@@ -23,7 +21,13 @@ namespace trees {
 
                 public:
                         /* default constructor */
-                        Node() { }
+                        Node() {
+                                colour_ = RED;
+                                left_   = NULL;
+                                right_  = NULL;
+                                right_  = NULL;
+                                parent_ = NULL;
+                        }
 
                         /* custom constructor */
                         Node(KEY k, VALUE v) {
