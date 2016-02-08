@@ -60,8 +60,10 @@ namespace trees {
                                 child = (node->left_) ? node->left_ : node->right_;
 
                                 /* node is a leaf, use leaf_ place holder as child */
-                                if (child == NULL)
+                                if (child == NULL) {
                                         child = leaf_;
+                                        child->parent_ = node->parent_;
+                                }
 
                                 /* replace node with child and keep node */
                                 parent = node->parent_;
@@ -70,7 +72,6 @@ namespace trees {
                                                 parent->left_ = child;
                                         else
                                                 parent->right_ = child;
-
                                         child->parent_ = parent;
                                 }
 
@@ -191,7 +192,7 @@ namespace trees {
                                      (sibling->left_->colour_ == BLACK) &&
                                      (sibling->right_->colour_ == BLACK)) {
                                          sibling->colour_ = RED;
-                                         rebalanceDeleteCase1(node->parent);
+                                         rebalanceDeleteCase1(node->parent_);
                                  }
                                  else
                                         rebalanceDeleteCase4(node);
@@ -200,13 +201,19 @@ namespace trees {
                         /* Case 4: */
                         void rebalanceDeleteCase4(Node<KEY,VALUE> * node) {
                                 Node<KEY,VALUE> * sibling = getSibling(node);
+                                int sibling_left_colour, sibling_right_colour;
 
-                                if ((node->parent_->color_ == RED) &&
-                                    (sibling->color_ == BLACK) &&
-                                    (sibling->left_->color_ == BLACK) &&
-                                    (sibling->right_->color_ == BLACK)) {
-                                        sibling->color_ = RED;
-                                        node->parent_->color_ = BLACK;
+                                sibling_left_colour = (sibling->left_) ?
+                                        sibling->left_->colour_ : BLACK;
+                                sibling_right_colour = (sibling->right_) ?
+                                        sibling->right_->colour_ : BLACK;
+
+                                if ((node->parent_->colour_ == RED) &&
+                                    (sibling->colour_ == BLACK) &&
+                                    (sibling_left_colour == BLACK) &&
+                                    (sibling_right_colour == BLACK)) {
+                                        sibling->colour_ = RED;
+                                        node->parent_->colour_ = BLACK;
                                 } else
                                         rebalanceDeleteCase5(node);
                         }
@@ -215,19 +222,19 @@ namespace trees {
                         void rebalanceDeleteCase5(Node<KEY,VALUE> * node) {
                                 Node<KEY,VALUE> * sibling = getSibling(node);
 
-                                if (sibling->color_ == BLACK) {
+                                if (sibling->colour_ == BLACK) {
                                         if ((node->parent_->left_ == node) &&
-                                            (sibling->right_->color_ == BLACK) &&
-                                            (sibling->left_->color_ == RED)) {
-                                                sibling->color_ = RED;
-                                                sibling->left_->color_ = BLACK;
+                                            (sibling->right_->colour_ == BLACK) &&
+                                            (sibling->left_->colour_ == RED)) {
+                                                sibling->colour_ = RED;
+                                                sibling->left_->colour_ = BLACK;
                                                 rotateRight(sibling);
                                         }
                                         else if ((node->parent_->right_ == node) &&
-                                                 (sibling->left_->color_ == BLACK) &&
-                                                 (sibling->right_->color_ == RED)) {
-                                                sibling->color_ = RED;
-                                                sibling->right_->color_ = BLACK;
+                                                 (sibling->left_->colour_ == BLACK) &&
+                                                 (sibling->right_->colour_ == RED)) {
+                                                sibling->colour_ = RED;
+                                                sibling->right_->colour_ = BLACK;
                                                 rotateLeft(sibling);
                                         }
                                 }
@@ -246,8 +253,8 @@ namespace trees {
                                          rotateLeft(node->parent_);
                                  }
                                  else {
-                                          sibling->left_->colour_ = BLACK;
-                                          rotateRight(node->parent_);
+                                         sibling->left_->colour_ = BLACK;
+                                         rotateRight(node->parent_);
                                  }
                         }
 
