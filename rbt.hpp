@@ -11,21 +11,16 @@ namespace trees {
         /* red black tree class definition */
         template <typename KEY, typename VALUE> class RBT : public BST<KEY,VALUE> {
 
-                private:
-                        Node<KEY,VALUE> * leaf_; /* place holder for deletion */
-
                 public:
                         /* default constructor */
                         RBT() {
                                 BST<KEY,VALUE>();
-                                leaf_ = new Node<KEY,VALUE>();
-                                leaf_->colour_ = BLACK;
+                                this->leaf_ = new Node<KEY,VALUE>();
+                                this->leaf_->colour_ = BLACK;
                         }
 
                         /* deconstructor */
-                        ~RBT() {
-                                delete leaf_;
-                        }
+                        ~RBT() { }
 
                         /* insert key */
                         void insertKey(const KEY & k, const VALUE & v) {
@@ -36,10 +31,6 @@ namespace trees {
 
                                 /* check Case 1 for tree rebalancing */
                                 rebalanceInsertCase1(this->searchKey(k));
-#ifdef _ENABLE_DEBUG_
-                                this->traverseTreeInternal(this->root_, &this->print_node);
-                                std::cout << std::endl;
-#endif
                         }
 
                         /* delete a key */
@@ -57,13 +48,7 @@ namespace trees {
                                 if (node == NULL)
                                         return;
 
-                                child = (node->left_) ? node->left_ : node->right_;
-
-                                /* node is a leaf, use leaf_ place holder as child */
-                                if (child == NULL) {
-                                        child = leaf_;
-                                        child->parent_ = node->parent_;
-                                }
+                                child = (node->left_ != this->leaf_) ? node->left_ : node->right_;
 
                                 /* replace node with child and keep node */
                                 parent = node->parent_;
@@ -85,14 +70,6 @@ namespace trees {
 
                                 /* eventually delete node */
                                 this->deleteNode(node);
-
-                                /* and replace leaf with null pointer */
-                                if (child == leaf_) {
-                                        if (child->parent_->left_ == child)
-                                                child->parent_->left_ = NULL;
-                                        else
-                                                child->parent_->right_ = NULL;
-                                }
                         }
 
                 private:
@@ -201,17 +178,11 @@ namespace trees {
                         /* Case 4: */
                         void rebalanceDeleteCase4(Node<KEY,VALUE> * node) {
                                 Node<KEY,VALUE> * sibling = getSibling(node);
-                                int sibling_left_colour, sibling_right_colour;
-
-                                sibling_left_colour = (sibling->left_) ?
-                                        sibling->left_->colour_ : BLACK;
-                                sibling_right_colour = (sibling->right_) ?
-                                        sibling->right_->colour_ : BLACK;
 
                                 if ((node->parent_->colour_ == RED) &&
                                     (sibling->colour_ == BLACK) &&
-                                    (sibling_left_colour == BLACK) &&
-                                    (sibling_right_colour == BLACK)) {
+                                    (sibling->left_->colour_ == BLACK) &&
+                                    (sibling->right_->colour_ == BLACK)) {
                                         sibling->colour_ = RED;
                                         node->parent_->colour_ = BLACK;
                                 } else
@@ -271,6 +242,9 @@ namespace trees {
                                         else
                                                 parent->right_ = right_child;
                                 }
+                                else
+                                        this->root_ = right_child;
+
                                 right_child->parent_ = parent;
                                 node->right_ = right_child->left_;
                                 node->parent_ = right_child;
@@ -290,6 +264,9 @@ namespace trees {
                                         else
                                                 parent->right_ = left_child;
                                 }
+                                else
+                                        this->root_ = left_child;
+
                                 left_child->parent_ = parent;
                                 node->left_ = left_child->right_;
                                 node->parent_ = left_child;
@@ -298,7 +275,9 @@ namespace trees {
 
                         /* get grand parent */
                         Node<KEY,VALUE> * getGrandParent(Node<KEY,VALUE> * node) {
-                                if (node != NULL && node->parent_ != NULL)
+                                if (node != NULL &&
+                                    node != this->leaf_ &&
+                                    node->parent_ != NULL)
                                         return node->parent_->parent_;
                                 else
                                         return NULL;
@@ -325,11 +304,6 @@ namespace trees {
                                         return node->parent_->right_;
                                 else
                                         return node->parent_->left_;
-                        }
-
-                        /* is node a leaf node? */
-                        bool isLeaf(Node<KEY,VALUE> * node) {
-                                return (node != NULL) ? false : true;
                         }
         }; /* end of red black tree */
 } /* end of namespace */
