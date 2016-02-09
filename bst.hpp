@@ -11,16 +11,19 @@ namespace trees {
 
                 protected:
                         Node<KEY,VALUE> *root_;
+                        Node<KEY,VALUE> *leaf_;
 
                 public:
                         /* default constructor */
                         BST() {
                                 root_ = NULL;
+                                leaf_ = NULL;
                         }
 
                         /* destructor */
                         ~BST() {
                                 traverseTreeInternal(root_, &this->deleteNode);
+                                if (leaf_) delete leaf_;
                         }
 
                         /* insert a new node with key k and value v */
@@ -59,7 +62,7 @@ namespace trees {
                                         else if (child->right_)
                                                 parent->left_ = child->right_;
                                         else
-                                                parent->left_ = NULL;
+                                                parent->left_ = leaf_;
                                 }
                                 else {
                                         if (child->right_)
@@ -67,7 +70,7 @@ namespace trees {
                                         else if (child->left_)
                                                 parent->right_ = child->left_;
                                         else
-                                                parent->right_ = NULL;
+                                                parent->right_ = leaf_;
                                 }
 delete_node:
                                 deleteNode(child);
@@ -86,7 +89,7 @@ delete_node:
                                         return NULL;
 
                                 max = root_;
-                                while (max->right_ != NULL)
+                                while (max->right_ != leaf_)
                                         max = max->right_;
                                 return max;
                         }
@@ -99,7 +102,7 @@ delete_node:
                                         return NULL;
 
                                 min = root_;
-                                while (min->left_ != NULL)
+                                while (min->left_ != leaf_)
                                         min = min->left_;
                                 return min;
                         }
@@ -112,6 +115,7 @@ delete_node:
                         static void print_node(trees::Node<KEY,VALUE> * node) {
                                 std::cout << "key: " << node->getKey()
                                           << ", value: " << node->getValue()
+                                          << ", colour: " << node->colour_
                                           << std::endl;
                         }
 
@@ -120,12 +124,11 @@ delete_node:
                         void insertKeyInternal(const KEY & k, const VALUE & v, Node<KEY,VALUE> ** node, Node<KEY,VALUE> * parent) {
                                 Node<KEY,VALUE> * p;
 
-                                if (*node == NULL) {
+                                if ((*node == leaf_) || (*node == NULL)) {
                                         *node = new Node<KEY,VALUE>(k, v);
                                         (*node)->parent_ = parent;
-#ifdef _ENABLE_DEBUG_
-                                        std::cout << "inserting " << *node << std::endl;
-#endif
+                                        (*node)->left_ = leaf_;
+                                        (*node)->right_ = leaf_;
                                         return;
                                 }
 
@@ -156,21 +159,21 @@ delete_node:
                                 Node<KEY,VALUE> *parent, *child;
 
                                 /* if key not present */
-                                if (node == NULL)
+                                if (node == leaf_)
                                         return NULL;
 
                                 /* node has both left and right child */
-                                if (node->left_ != NULL && node->right_ != NULL) {
+                                if ((node->left_ != leaf_) && (node->right_ != leaf_)) {
                                         child = findMinKeyInternal(node->right_);
                                         *node = *child;
                                 }
                                 /* node has only left child */
-                                else if (node->left_ != NULL) {
+                                else if (node->left_ != leaf_) {
                                         child = findMaxKeyInternal(node->left_);
                                         *node = *child;
                                 }
                                 /* node has only right child */
-                                else if (node->right_ != NULL) {
+                                else if (node->right_ != leaf_) {
                                         child = findMinKeyInternal(node->right_);
                                         *node = *child;
                                 }
@@ -185,8 +188,8 @@ delete_node:
                         Node<KEY,VALUE> * searchKeyInternal(const KEY & k, Node<KEY,VALUE> * node) {
                                 Node<KEY,VALUE> * p = node;
 
-                                if (node == NULL)
-                                        return NULL;
+                                if ((node == NULL) || (node == leaf_))
+                                        return leaf_;
 
                                 if (k < p->key_)
                                         return searchKeyInternal(k, p->left_);
@@ -200,11 +203,11 @@ delete_node:
                         Node<KEY,VALUE> * findMaxKeyInternal(Node<KEY,VALUE> * node) {
                                 Node<KEY,VALUE> * max;
 
-                                if (node == NULL)
+                                if ((node == NULL) || (node == leaf_))
                                         return NULL;
 
                                 max = node;
-                                while (max->right_ != NULL)
+                                while (max->right_ != leaf_)
                                         max = max->right_;
 
                                 return max;
@@ -214,11 +217,11 @@ delete_node:
                         Node<KEY,VALUE> * findMinKeyInternal(Node<KEY,VALUE> * node) {
                                 Node<KEY,VALUE> * min;
 
-                                if (node == NULL)
+                                if ((node == NULL) || (node == leaf_))
                                         return NULL;
 
                                 min = node;
-                                while (min->left_ != NULL)
+                                while (min->left_ != leaf_)
                                         min = min->left_;
 
                                 return min;
@@ -226,17 +229,17 @@ delete_node:
 
                         /* traverse tree internal */
                         void traverseTreeInternal(Node<KEY,VALUE> * node, void (*function)(Node<KEY,VALUE> *)) {
-                                if (node == NULL)
+                                if ((node == NULL) || (node == leaf_))
                                         return;
 
                                 /* apply function to left subtree first */
                                 traverseTreeInternal(node->left_, function);
-                                if (node->left_)
+                                if (node->left_ != this->leaf_)
                                         function(node->left_);
 
                                 /* apply function to right subtree second */
                                 traverseTreeInternal(node->right_, function);
-                                if (node->right_)
+                                if (node->right_ != this->leaf_)
                                         function(node->right_);
 
                                 /* finally apply function to root (e.g. delete) */
@@ -246,9 +249,6 @@ delete_node:
 
                         /* delete node */
                         static void deleteNode(Node<KEY,VALUE> * node) {
-#ifdef _ENABLE_DEBUG_
-                                std::cout << "deleting " << node << std::endl;
-#endif
                                 delete node;
                         }
         }; /* end of binary search tree */
