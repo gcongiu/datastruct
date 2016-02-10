@@ -57,17 +57,17 @@ namespace trees {
 
                                 /* delete min/max node */
                                 if (parent->left_ == child) {
-                                        if (child->left_)
+                                        if (child->left_ != leaf_)
                                                 parent->left_ = child->left_;
-                                        else if (child->right_)
+                                        else if (child->right_ != leaf_)
                                                 parent->left_ = child->right_;
                                         else
                                                 parent->left_ = leaf_;
                                 }
                                 else {
-                                        if (child->right_)
+                                        if (child->right_ != leaf_)
                                                 parent->right_ = child->right_;
-                                        else if (child->left_)
+                                        else if (child->left_ != leaf_)
                                                 parent->right_ = child->left_;
                                         else
                                                 parent->right_ = leaf_;
@@ -162,8 +162,8 @@ delete_node:
                                 if (node == leaf_)
                                         return NULL;
 
-                                /* node has both left and right child */
-                                if ((node->left_ != leaf_) && (node->right_ != leaf_)) {
+                                /* node has a right child */
+                                if (node->right_ != leaf_) {
                                         child = findMinKeyInternal(node->right_);
                                         *node = *child;
                                 }
@@ -172,15 +172,11 @@ delete_node:
                                         child = findMaxKeyInternal(node->left_);
                                         *node = *child;
                                 }
-                                /* node has only right child */
-                                else if (node->right_ != leaf_) {
-                                        child = findMinKeyInternal(node->right_);
-                                        *node = *child;
-                                }
                                 /* node is a leaf node */
                                 else {
                                          child = node;
                                 }
+
                                 return child;
                         }
 
