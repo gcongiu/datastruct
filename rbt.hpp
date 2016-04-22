@@ -2,9 +2,6 @@
 #define __RBT_H__
 
 #include "bst.hpp"
-#ifdef _ENABLE_DEBUG_
-#include <iostream>
-#endif
 
 namespace trees {
 
@@ -80,6 +77,7 @@ namespace trees {
                                 else
                                         rebalanceInsertCase2(node);
                         }
+
                         /* Case 2: the parent node is black */
                         void rebalanceInsertCase2(Node<KEY,VALUE> * node) {
                                 if (node->parent_->colour_ == BLACK)
@@ -107,11 +105,13 @@ namespace trees {
                         void rebalanceInsertCase4(Node<KEY,VALUE> * node) {
                                 Node<KEY,VALUE> * grandpa = getGrandParent(node);
 
-                                if ((node == node->parent_->right_) && (node->parent_ == grandpa->left_)) {
+                                if ((node == node->parent_->right_) &&
+                                    (node->parent_ == grandpa->left_)) {
                                         rotateLeft(node->parent_);
                                         node = node->left_;
                                 }
-                                else if ((node == node->parent_->left_) && (node->parent_ == grandpa->right_)) {
+                                else if ((node == node->parent_->left_) &&
+                                         (node->parent_ == grandpa->right_)) {
                                         rotateRight(node->parent_);
                                         node = node->right_;
                                 }
@@ -131,10 +131,6 @@ namespace trees {
                                         rotateRight(grandpa);
                                 else
                                         rotateLeft(grandpa);
-
-                                /* if grand parent was root update root */
-                                if (grandpa->parent_->parent_ == NULL)
-                                        this->root_ = grandpa->parent_;
                         }
 
                         /* Case 1: */
@@ -248,6 +244,8 @@ namespace trees {
                                 right_child->parent_ = parent;
                                 node->right_ = right_child->left_;
                                 node->parent_ = right_child;
+                                if (right_child->left_ != this->leaf_)
+                                        right_child->left_->parent_ = node;
                                 right_child->left_ = node;
                         }
 
@@ -270,14 +268,16 @@ namespace trees {
                                 left_child->parent_ = parent;
                                 node->left_ = left_child->right_;
                                 node->parent_ = left_child;
+                                if (left_child->right_ != this->leaf_)
+                                        left_child->right_->parent_ = node;
                                 left_child->right_ = node;
                         }
 
                         /* get grand parent */
                         Node<KEY,VALUE> * getGrandParent(Node<KEY,VALUE> * node) {
-                                if (node != NULL &&
-                                    node != this->leaf_ &&
-                                    node->parent_ != NULL)
+                                if ((node != NULL) &&
+                                    (node != this->leaf_) &&
+                                    (node->parent_ != NULL))
                                         return node->parent_->parent_;
                                 else
                                         return NULL;
