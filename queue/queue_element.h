@@ -5,7 +5,7 @@
 struct queue_element {
 
         int integer_;
-        struct list_head *head_;
+        struct list_head head_;
 };
 
 typedef struct queue_element queue_element_t;
