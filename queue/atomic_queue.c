@@ -1,6 +1,56 @@
-#include <stdio.h>
 #include "atomic_queue.h"
 #include "list.h"
+
+/*
+ * Atomic queue implementation - valid only for one producer and one consumer
+ *
+ * Atomic_queue_init(&q):
+ *  +---------------------------------------+
+ *  |       head                 dummy      |
+ *  |  +------------+       +------------+  |
+ *  |  |  integer_  |       |  integer_  |  |
+ *  |  |            |       |            |  |
+ *  |  |    head_   |       |    head_   |  |
+ *  |  | +--------+ |       | +--------+ |  |
+ *  +--|>|  next  |-|-------|>|  next  |-|--+
+ *     | +--------+ |       | +--------+ |
+ *  +--|-|  prev  | |<------|-|  prev  |<|--+
+ *  |  | +--------+ |       | +--------+ |  |
+ *  |  +------------+       +------------+  |
+ *  +---------------------------------------+
+ *
+ * Atomic_queue_push(q, elem):
+ *  +------------------------------------------------------------+
+ *  |       head                 elem                 dummy      |
+ *  |  +------------+       +------------+       +------------+  |
+ *  |  |  integer_  |       |  integer_  |       |  integer_  |  |
+ *  |  |            |       |            |       |            |  |
+ *  |  |    head_   |       |    head_   |       |    head_   |  |
+ *  |  | +--------+ |       | +--------+ |       | +--------+ |  |
+ *  +--|>|  next  |-|-------|>|  next  |-|-------|>|  next  |-|--+
+ *     | +--------+ |       | +--------+ |       | +--------+ |
+ *  +--|-|  prev  | |<------|-|  prev  |<|-------|-|  prev  |<|--+
+ *  |  | +--------+ |       | +--------+ |       | +--------+ |  |
+ *  |  +------------+       +------------+       +------------+  |
+ *  +------------------------------------------------------------+
+ *
+ *  A new Atomic_queue_pop(q) will remove elem, that is:
+ *   - q->head_.next     = dummy->head_
+ *   - dummy->head_.prev = q->head_
+ *
+ *  A concurrent Atomic_queue_push(q, new) will add 'new' to the tail of list:
+ *   - dummy->head_.next = new->head_
+ *   - new->head_.prev   = dummy->head_
+ *   - new->head_.next   = q->head_
+ *   - q->head_.prev     = new->head_
+ *
+ *  and it will copy integer_ from new to dummy:
+ *   - dummy->integer_ = new->integer_
+ *
+ *  The push operation involves neither dummy->head_.prev nor
+ *  head.next (modified by the pop) and therefore does not produce
+ *  any inconsistency in the queue.
+ */
 
 #define CHECK_PTR(ptr)           \
         do {                     \
@@ -40,7 +90,7 @@ void Atomic_queue_fini(atomic_queue_t *q) {
         free(*q);
 }
 
-void Atomic_queue_push(atomic_queue_t q, queue_element_t *e) {
+void Atomic_queue_push(atomic_queue_t q, queue_element_t *elem) {
 
         queue_element_t *dummy;
 
@@ -49,11 +99,11 @@ void Atomic_queue_push(atomic_queue_t q, queue_element_t *e) {
         /* get old dummy element */
         dummy = list_entry(q->head_.prev, queue_element_t, head_);
 
-        /* copy e to dummy */
-        dummy->integer_ = e->integer_;
-
         /* e becomes the new dummy */
-        list_add_tail(&(e->head_), &(q->head_));
+        list_add_tail(&(elem->head_), &(q->head_));
+
+        /* copy e to dummy */
+        dummy->integer_ = elem->integer_;
 
         /* updated size */
         q->size_++;
