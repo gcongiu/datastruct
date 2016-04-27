@@ -6,20 +6,22 @@
 void *thread(void *ptr) {
 
         atomic_queue_t q = (atomic_queue_t)ptr;
-        queue_element_t *e;
+        int *e;
 
         for(;;) {
                 while (Atomic_queue_empty(q));
 
                 /* get front element */
-                e = Atomic_queue_front(q);
+                e = (int *)Atomic_queue_front(q);
 
                 /* print element */
-                fprintf(stdout, "received: %d\n", e->integer_);
+                fprintf(stdout, "received: %d\n", *e);
 
                 /* check term command */
-                if (e->integer_ == -1)
+                if (*e == -1) {
+                        free(e);
                         break;
+                }
 
                 /* pop element */
                 Atomic_queue_pop(q);
@@ -36,7 +38,7 @@ int main(int argc, char *argv[]) {
         pthread_t tid;
         pthread_attr_t attr;
         atomic_queue_t q;
-        queue_element_t *e;
+        int *e;
 
         /* init queue */
         Atomic_queue_init(&q);
@@ -49,14 +51,14 @@ int main(int argc, char *argv[]) {
 
         /* push new elements in the queue */
         for (i = 0; i < 15; i++) {
-                e = (queue_element_t *)malloc(sizeof(queue_element_t));
-                e->integer_ = i;
+                e = (int *)malloc(sizeof(int));
+                *e = i;
                 Atomic_queue_push(q, e);
         }
 
         /* submit end request : integet = -1 */
-        e = (queue_element_t *)malloc(sizeof(queue_element_t));
-        e->integer_ = -1;
+        e = (int *)malloc(sizeof(int));
+        *e = -1;
         Atomic_queue_push(q, e);
 
         pthread_join(tid, NULL);

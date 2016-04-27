@@ -15,4 +15,4 @@ test: main.o atomic_queue.o
 	gcc -o $@ main.o atomic_queue.o $(LDFLAGS)
 
 clean:
-	rm -f *.o
+	rm -f *.o test
